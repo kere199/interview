@@ -1,5 +1,5 @@
 import { desc, eq } from "drizzle-orm";
-import { payments } from "#api/databases/schema.ts";
+import { payments, type PaymentStatus } from "#api/databases/schema.ts";
 import type { AppContext } from "#api/primitives/app-context.ts";
 
 /**
@@ -49,6 +49,23 @@ export async function createPayment(
 			description: data.description,
 			createdBy: ctx.user.id,
 		})
+		.returning();
+
+	return payment;
+}
+
+/**
+ * Update payment status. Used by webhooks to reflect external payment status.
+ */
+export async function updatePaymentStatus(
+	ctx: AppContext,
+	paymentId: string,
+	newStatus: PaymentStatus,
+) {
+	const [payment] = await ctx.container.db
+		.update(payments)
+		.set({ status: newStatus })
+		.where(eq(payments.id, paymentId))
 		.returning();
 
 	return payment;
