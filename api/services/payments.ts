@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { payments } from "#api/databases/schema.ts";
 import type { AppContext } from "#api/primitives/app-context.ts";
 
@@ -14,4 +14,42 @@ export async function getPaymentById(ctx: AppContext, paymentId: string) {
 		.then((rows) => rows[0]);
 
 	return payment ?? null;
+}
+
+/**
+ * List all payments for the current user, sorted by most recent first.
+ */
+export async function listPaymentsByUser(ctx: AppContext) {
+	const paymentsList = await ctx.container.db
+		.select()
+		.from(payments)
+		.where(eq(payments.createdBy, ctx.user.id))
+		.orderBy(desc(payments.createdAt))
+		.execute();
+
+	return paymentsList;
+}
+
+/**
+ * Create a new payment for the current user.
+ */
+export async function createPayment(
+	ctx: AppContext,
+	data: {
+		amount: number;
+		recipientEmail: string;
+		description?: string;
+	},
+) {
+	const [payment] = await ctx.container.db
+		.insert(payments)
+		.values({
+			amount: data.amount,
+			recipientEmail: data.recipientEmail,
+			description: data.description,
+			createdBy: ctx.user.id,
+		})
+		.returning();
+
+	return payment;
 }

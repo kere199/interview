@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { getPaymentById } from "#api/services/payments.ts";
+import { createPayment, getPaymentById, listPaymentsByUser } from "#api/services/payments.ts";
 import { protectedProcedure, router } from "./init.ts";
 
 /**
@@ -32,5 +32,28 @@ export const paymentsRouter = router({
 			}
 
 			return payment;
+		}),
+
+	/**
+	 * List all payments for the current user.
+	 */
+	list: protectedProcedure
+		.query(async ({ ctx }) => {
+			return await listPaymentsByUser(ctx);
+		}),
+
+	/**
+	 * Create a new payment.
+	 */
+	create: protectedProcedure
+		.input(
+			z.object({
+				amount: z.number().int().positive(),
+				recipientEmail: z.string().email(),
+				description: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			return await createPayment(ctx, input);
 		}),
 });
